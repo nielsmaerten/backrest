@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useState } from "react";
 import { Config, Repo } from "../../gen/ts/v1/config_pb";
+import { setDateTimeDisplaySettings } from "../lib/formatting";
 
 type ConfigCtx = [Config | null, (config: Config) => void];
 
@@ -10,7 +11,14 @@ export const ConfigContextProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const [config, setConfig] = useState<Config | null>(null);
+  const [config, setConfigInternal] = useState<Config | null>(null);
+  
+  const setConfig = (newConfig: Config) => {
+    setConfigInternal(newConfig);
+    // Update date/time formatting settings globally when config changes
+    setDateTimeDisplaySettings(newConfig.displaySettings);
+  };
+  
   return (
     <>
       <ConfigContext.Provider value={[config, setConfig]}>

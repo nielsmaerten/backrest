@@ -11,6 +11,8 @@ import {
   FormInstance,
   Tooltip,
   Select,
+  Radio,
+  Space,
 } from "antd";
 import React, { useEffect, useState } from "react";
 import { useShowModal } from "../components/ModalManager";
@@ -28,11 +30,14 @@ import {
   MultihostSchema,
   Multihost_PeerSchema,
   Multihost_Permission_Type,
+  DisplaySettingsSchema,
+  DisplaySettings_DateTimeFormatMode,
 } from "../../gen/ts/v1/config_pb";
 import { PeerState } from "../../gen/ts/v1sync/syncservice_pb";
 import { useSyncStates } from "../state/peerstates";
 import { PeerStateConnectionStatusIcon } from "../components/SyncStateIcon";
 import { isMultihostSyncEnabled } from "../state/buildcfg";
+import { formatTimePreview } from "../lib/formatting";
 import * as m from "../paraglide/messages";
 
 interface FormData {
@@ -68,6 +73,11 @@ interface FormData {
         scopes: string[];
       }[];
     }[];
+  };
+  displaySettings: {
+    dateTimeFormatMode: DisplaySettings_DateTimeFormatMode;
+    dateTimeFormatLocale: string;
+    dateTimeFormatCustom: string;
   };
 }
 
@@ -111,6 +121,9 @@ export const SettingsModal = () => {
         ignoreUnknownFields: false,
       });
       newConfig.instance = formData.instance;
+      newConfig.displaySettings = fromJson(DisplaySettingsSchema, formData.displaySettings || {}, {
+        ignoreUnknownFields: false,
+      });
 
       if (!newConfig.auth?.users && !newConfig.auth?.disabled) {
         throw new Error(
@@ -201,6 +214,12 @@ export const SettingsModal = () => {
                 label: m.settings_section_authentication(),
                 forceRender: true,
                 children: <AuthenticationForm form={form} config={config} />,
+              },
+              {
+                key: "datetime",
+                label: m.settings_section_datetime(),
+                forceRender: true,
+                children: <DateTimeForm form={form} config={config} />,
               },
               {
                 key: "2",
@@ -357,6 +376,135 @@ const AuthenticationForm: React.FC<{
             </>
           )}
         </Form.List>
+      </Form.Item>
+    </>
+  );
+};
+
+// Predefined locale options for date/time formatting
+const predefinedLocales = [
+  { value: "en-US", label: "English (US) - MM/DD/YYYY" },
+  { value: "en-GB", label: "English (UK) - DD/MM/YYYY" },
+  { value: "de-DE", label: "German - DD.MM.YYYY" },
+  { value: "fr-FR", label: "French - DD/MM/YYYY" },
+  { value: "es-ES", label: "Spanish - DD/MM/YYYY" },
+  { value: "it-IT", label: "Italian - DD/MM/YYYY" },
+  { value: "pt-BR", label: "Portuguese (Brazil) - DD/MM/YYYY" },
+  { value: "ja-JP", label: "Japanese - YYYY/MM/DD" },
+  { value: "zh-CN", label: "Chinese (Simplified) - YYYY/M/D" },
+  { value: "ko-KR", label: "Korean - YYYY. M. D." },
+  { value: "ru-RU", label: "Russian - DD.MM.YYYY" },
+  { value: "ar-SA", label: "Arabic (Saudi Arabia)" },
+  { value: "hi-IN", label: "Hindi (India) - DD/MM/YYYY" },
+];
+
+const DateTimeForm: React.FC<{
+  config: Config;
+  form: FormInstance<FormData>;
+}> = ({ form, config }) => {
+  // Use a fixed date for consistent preview display
+  const previewTime = new Date('2024-01-15T14:30:45');
+  
+  // Get initial values from config
+  const initialMode = config.displaySettings?.dateTimeFormatMode ?? DisplaySettings_DateTimeFormatMode.DATE_TIME_FORMAT_BROWSER;
+  const initialLocale = config.displaySettings?.dateTimeFormatLocale || "en-US";
+  const initialCustomFormat = config.displaySettings?.dateTimeFormatCustom || "YYYY-MM-DD HH:mm";
+
+  return (
+    <>
+      <Form.Item
+        label={m.settings_datetime_format_mode()}
+        name={["displaySettings", "dateTimeFormatMode"]}
+        initialValue={initialMode}
+      >
+        <Radio.Group>
+          <Space direction="vertical">
+            <Radio value={DisplaySettings_DateTimeFormatMode.DATE_TIME_FORMAT_BROWSER}>
+              <span>{m.settings_datetime_format_browser()}</span>
+              <Typography.Text type="secondary" style={{ marginLeft: 8, fontSize: "12px" }}>
+                {m.settings_datetime_format_browser_desc()}
+              </Typography.Text>
+            </Radio>
+            <Radio value={DisplaySettings_DateTimeFormatMode.DATE_TIME_FORMAT_PREDEFINED}>
+              <span>{m.settings_datetime_format_predefined()}</span>
+              <Typography.Text type="secondary" style={{ marginLeft: 8, fontSize: "12px" }}>
+                {m.settings_datetime_format_predefined_desc()}
+              </Typography.Text>
+            </Radio>
+            <Radio value={DisplaySettings_DateTimeFormatMode.DATE_TIME_FORMAT_CUSTOM}>
+              <span>{m.settings_datetime_format_custom()}</span>
+              <Typography.Text type="secondary" style={{ marginLeft: 8, fontSize: "12px" }}>
+                {m.settings_datetime_format_custom_desc()}
+              </Typography.Text>
+            </Radio>
+          </Space>
+        </Radio.Group>
+      </Form.Item>
+
+      <Form.Item shouldUpdate noStyle>
+        {({ getFieldValue }) => {
+          const mode = getFieldValue(["displaySettings", "dateTimeFormatMode"]);
+          
+          if (mode === DisplaySettings_DateTimeFormatMode.DATE_TIME_FORMAT_PREDEFINED) {
+            return (
+              <Form.Item
+                label={m.settings_datetime_locale()}
+                name={["displaySettings", "dateTimeFormatLocale"]}
+                initialValue={initialLocale}
+              >
+                <Select
+                  placeholder={m.settings_datetime_locale_placeholder()}
+                  options={predefinedLocales}
+                  style={{ maxWidth: 350 }}
+                />
+              </Form.Item>
+            );
+          }
+          
+          if (mode === DisplaySettings_DateTimeFormatMode.DATE_TIME_FORMAT_CUSTOM) {
+            return (
+              <>
+                <Form.Item
+                  label={m.settings_datetime_custom_format()}
+                  name={["displaySettings", "dateTimeFormatCustom"]}
+                  initialValue={initialCustomFormat}
+                  extra={m.settings_datetime_format_hint()}
+                >
+                  <Input
+                    placeholder={m.settings_datetime_custom_format_placeholder()}
+                    style={{ maxWidth: 350 }}
+                  />
+                </Form.Item>
+              </>
+            );
+          }
+          
+          return null;
+        }}
+      </Form.Item>
+
+      <Form.Item shouldUpdate label={m.settings_datetime_preview()}>
+        {({ getFieldValue }) => {
+          const mode = getFieldValue(["displaySettings", "dateTimeFormatMode"]) ?? DisplaySettings_DateTimeFormatMode.DATE_TIME_FORMAT_BROWSER;
+          const locale = getFieldValue(["displaySettings", "dateTimeFormatLocale"]) || "en-US";
+          const customFormat = getFieldValue(["displaySettings", "dateTimeFormatCustom"]) || "YYYY-MM-DD HH:mm";
+          
+          const preview = formatTimePreview(previewTime, mode, locale, customFormat);
+          
+          return (
+            <Typography.Text 
+              style={{ 
+                fontFamily: "monospace", 
+                padding: "4px 8px", 
+                borderRadius: "4px",
+                border: "1px solid #d9d9d9",
+                display: "inline-block"
+              }}
+            >
+              {preview}
+            </Typography.Text>
+          );
+        }}
       </Form.Item>
     </>
   );
