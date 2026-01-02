@@ -340,5 +340,19 @@
   "dashboard_peer_instance_id": "Instance ID",
   "dashboard_peer_public_key_id": "Public Key ID",
   "dashboard_peer_last_state_update": "Last State Update",
-  "dashboard_peer_ago": "ago"
+  "dashboard_peer_ago": "ago",
+  "settings_section_datetime": "Date & Time",
+  "settings_datetime_format_mode": "Date/Time Format",
+  "settings_datetime_format_browser": "Browser Default",
+  "settings_datetime_format_browser_desc": "Use the browser's locale settings",
+  "settings_datetime_format_predefined": "Predefined Format",
+  "settings_datetime_format_predefined_desc": "Choose from a list of common formats",
+  "settings_datetime_format_custom": "Custom Format",
+  "settings_datetime_format_custom_desc": "Enter your own format string",
+  "settings_datetime_locale": "Locale",
+  "settings_datetime_locale_placeholder": "Select a locale",
+  "settings_datetime_custom_format": "Format String",
+  "settings_datetime_custom_format_placeholder": "e.g., YYYY-MM-DD HH:mm",
+  "settings_datetime_preview": "Preview",
+  "settings_datetime_format_hint": "Supported tokens: YYYY, YY, MM, M, DD, D, HH, H, hh, h, mm, m, ss, s, A, a"
 }

@@ -22,6 +22,7 @@ message Config {
   repeated Plan plans = 4 [json_name="plans"];
   Auth auth = 5 [json_name="auth"];
   Multihost multihost = 7 [json_name="sync"];
+  DisplaySettings display_settings = 8 [json_name="displaySettings"]; // UI display preferences
 }
 
 message Multihost {
@@ -269,4 +270,20 @@ message User {
   oneof password {
     string password_bcrypt = 2 [json_name="passwordBcrypt"];
   }
+}
+
+// DisplaySettings contains UI display preferences that apply to all users.
+message DisplaySettings {
+  // DateTimeFormatMode defines how dates/times should be formatted in the UI.
+  enum DateTimeFormatMode {
+    DATE_TIME_FORMAT_BROWSER = 0; // Use browser's locale (default, current behavior)
+    DATE_TIME_FORMAT_PREDEFINED = 1; // Use a predefined locale format
+    DATE_TIME_FORMAT_CUSTOM = 2; // Use a custom format string
+  }
+
+  DateTimeFormatMode date_time_format_mode = 1 [json_name="dateTimeFormatMode"];
+  // For PREDEFINED mode: locale string like "en-US", "fr-FR", "de-DE", "ja-JP", etc.
+  string date_time_format_locale = 2 [json_name="dateTimeFormatLocale"];
+  // For CUSTOM mode: custom format string e.g. "YYYY-MM-DD HH:mm"
+  string date_time_format_custom = 3 [json_name="dateTimeFormatCustom"];
 }
