@@ -64,28 +64,31 @@ const isCustomFormat = (): boolean => {
 };
 
 // Custom format string parser
-// Supports: YYYY, MM, DD, HH, mm, ss, hh (12-hour), A/a (AM/PM)
+// Supports: YYYY, YY, MM, M, DD, D, HH, H, hh, h, mm, m, ss, s, A/a (AM/PM)
 const formatWithCustomString = (date: Date, formatStr: string): string => {
   const pad = (n: number) => n.toString().padStart(2, "0");
   const hours24 = date.getHours();
   const hours12 = hours24 % 12 || 12;
   const ampm = hours24 >= 12 ? "PM" : "AM";
   
+  // Use placeholders to avoid overlapping replacements
+  // Replace longer patterns first, then shorter ones
   return formatStr
     .replace(/YYYY/g, date.getFullYear().toString())
     .replace(/YY/g, date.getFullYear().toString().slice(-2))
     .replace(/MM/g, pad(date.getMonth() + 1))
-    .replace(/M(?!O)/g, (date.getMonth() + 1).toString())
     .replace(/DD/g, pad(date.getDate()))
-    .replace(/D(?!E)/g, date.getDate().toString())
     .replace(/HH/g, pad(hours24))
-    .replace(/H(?!O)/g, hours24.toString())
     .replace(/hh/g, pad(hours12))
-    .replace(/h(?!o)/g, hours12.toString())
     .replace(/mm/g, pad(date.getMinutes()))
-    .replace(/m(?!i)/g, date.getMinutes().toString())
     .replace(/ss/g, pad(date.getSeconds()))
-    .replace(/s(?!e)/g, date.getSeconds().toString())
+    // Single-letter patterns only match standalone letters (use word boundary or specific patterns)
+    .replace(/\bM\b/g, (date.getMonth() + 1).toString())
+    .replace(/\bD\b/g, date.getDate().toString())
+    .replace(/\bH\b/g, hours24.toString())
+    .replace(/\bh\b/g, hours12.toString())
+    .replace(/\bm\b/g, date.getMinutes().toString())
+    .replace(/\bs\b/g, date.getSeconds().toString())
     .replace(/A/g, ampm)
     .replace(/a/g, ampm.toLowerCase());
 };
@@ -176,11 +179,14 @@ export const formatDate = (time: number | string | Date) => {
   d.setTime(time);
   
   if (isCustomFormat() && dateTimeSettings?.dateTimeFormatCustom) {
-    // Use a simplified date-only version of the custom format
-    // Or just use the date portion from the custom format
+    // For custom format, we use a date-only subset by looking for common date tokens
     const customFormat = dateTimeSettings.dateTimeFormatCustom;
-    // Try to extract just the date part (before any time-related tokens)
-    const dateOnlyFormat = customFormat.replace(/[\s,]*[Hh]+:?[m]*:?[s]*[\s,]*[AaPp]*[Mm]*/g, '').trim();
+    // Extract date portion by removing time-related patterns (HH:mm, hh:mm:ss, AM/PM, etc.)
+    // This regex removes time patterns like "HH:mm", "hh:mm:ss", "H:m", and AM/PM markers
+    const dateOnlyFormat = customFormat
+      .replace(/\s*[Hh]{1,2}:[m]{1,2}(:[s]{1,2})?\s*/g, '')
+      .replace(/\s*[AaPp][Mm]?\s*/g, '')
+      .trim();
     return formatWithCustomString(d, dateOnlyFormat || "YYYY-MM-DD");
   }
   

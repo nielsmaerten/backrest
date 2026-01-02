@@ -75,7 +75,7 @@ interface FormData {
     }[];
   };
   displaySettings: {
-    dateTimeFormatMode: number;
+    dateTimeFormatMode: DisplaySettings_DateTimeFormatMode;
     dateTimeFormatLocale: string;
     dateTimeFormatCustom: string;
   };
@@ -402,7 +402,8 @@ const DateTimeForm: React.FC<{
   config: Config;
   form: FormInstance<FormData>;
 }> = ({ form, config }) => {
-  const [previewTime] = useState(() => new Date());
+  // Use a fixed date for consistent preview display
+  const previewTime = new Date('2024-01-15T14:30:45');
   
   // Get initial values from config
   const initialMode = config.displaySettings?.dateTimeFormatMode ?? DisplaySettings_DateTimeFormatMode.DATE_TIME_FORMAT_BROWSER;
